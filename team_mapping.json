@@ -1,0 +1,50 @@
+{
+  "match_id": 130,
+  "class_to_role": {
+    "white": "team_A",
+    "red": "team_W",
+    "green": "gk_A",
+    "black": "gk_W",
+    "cyan": "referee"
+  },
+  "role_to_letter": {
+    "team_A": "A",
+    "team_W": "W",
+    "gk_A": "C",
+    "gk_W": "E",
+    "referee": "D"
+  },
+  "id_ranges": {
+    "team_A": [
+      1,
+      10
+    ],
+    "team_W": [
+      11,
+      20
+    ],
+    "gk_A": [
+      24,
+      24
+    ],
+    "gk_W": [
+      25,
+      25
+    ],
+    "referee": [
+      21,
+      23
+    ]
+  },
+  "goalkeeper_sides": {
+    "team_A": "left",
+    "team_W": "right"
+  },
+  "letter_to_team": {
+    "A": "Team A",
+    "W": "Team W",
+    "C": "Team A",
+    "E": "Team W",
+    "D": "Referee"
+  }
+}

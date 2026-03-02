@@ -1,0 +1,415 @@
+{
+  "meta": {
+    "team": "team_W",
+    "action_type": "dribble",
+    "num_relations": 12,
+    "pitch_blocks": 30,
+    "x_blocks": 6,
+    "y_lanes": 5,
+    "stage_groups": [
+      "Build-Up",
+      "Progression",
+      "Final Attack"
+    ]
+  },
+  "blocks": {
+    "D2-C": {
+      "received": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "P1-C": {
+      "received": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      }
+    },
+    "P1-LW": {
+      "received": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "D2-LW": {
+      "received": {
+        "total": 2,
+        "success": 2,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      }
+    },
+    "D1-LHS": {
+      "received": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "D1-C": {
+      "received": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      }
+    },
+    "D2-RW": {
+      "received": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "D2-RHS": {
+      "received": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      }
+    },
+    "D2-LHS": {
+      "received": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "D1-RHS": {
+      "received": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "F1-C": {
+      "received": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      },
+      "launched": {
+        "total": 2,
+        "success": 2,
+        "success_rate": 1.0
+      }
+    },
+    "P2-C": {
+      "received": {
+        "total": 2,
+        "success": 2,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "P2-LW": {
+      "received": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "P2-LHS": {
+      "received": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      }
+    },
+    "P2-RHS": {
+      "received": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      }
+    },
+    "D1-LW": {
+      "received": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "P1-RHS": {
+      "received": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "F1-RW": {
+      "received": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      }
+    },
+    "F2-RW": {
+      "received": {
+        "total": 1,
+        "success": 1,
+        "success_rate": 1.0
+      },
+      "launched": {
+        "total": 0,
+        "success": 0,
+        "success_rate": 0.0
+      }
+    }
+  },
+  "relations": [
+    {
+      "from_block": "D2-C",
+      "to_block": "P1-C",
+      "from_stage": "D2",
+      "to_stage": "P1",
+      "from_stage_group": "Build-Up",
+      "to_stage_group": "Progression",
+      "from_lane": "C",
+      "to_lane": "C",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "P1-LW",
+      "to_block": "D2-LW",
+      "from_stage": "P1",
+      "to_stage": "D2",
+      "from_stage_group": "Progression",
+      "to_stage_group": "Build-Up",
+      "from_lane": "LW",
+      "to_lane": "LW",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "D1-LHS",
+      "to_block": "D1-C",
+      "from_stage": "D1",
+      "to_stage": "D1",
+      "from_stage_group": "Build-Up",
+      "to_stage_group": "Build-Up",
+      "from_lane": "LHS",
+      "to_lane": "C",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "D2-RW",
+      "to_block": "D2-RHS",
+      "from_stage": "D2",
+      "to_stage": "D2",
+      "from_stage_group": "Build-Up",
+      "to_stage_group": "Build-Up",
+      "from_lane": "RW",
+      "to_lane": "RHS",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "D2-LHS",
+      "to_block": "D2-LW",
+      "from_stage": "D2",
+      "to_stage": "D2",
+      "from_stage_group": "Build-Up",
+      "to_stage_group": "Build-Up",
+      "from_lane": "LHS",
+      "to_lane": "LW",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "D1-RHS",
+      "to_block": "D2-RW",
+      "from_stage": "D1",
+      "to_stage": "D2",
+      "from_stage_group": "Build-Up",
+      "to_stage_group": "Build-Up",
+      "from_lane": "RHS",
+      "to_lane": "RW",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "F1-C",
+      "to_block": "P2-C",
+      "from_stage": "F1",
+      "to_stage": "P2",
+      "from_stage_group": "Final Attack",
+      "to_stage_group": "Progression",
+      "from_lane": "C",
+      "to_lane": "C",
+      "total": 2,
+      "success": 2,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "P2-LW",
+      "to_block": "P2-LHS",
+      "from_stage": "P2",
+      "to_stage": "P2",
+      "from_stage_group": "Progression",
+      "to_stage_group": "Progression",
+      "from_lane": "LW",
+      "to_lane": "LHS",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "P2-C",
+      "to_block": "P2-RHS",
+      "from_stage": "P2",
+      "to_stage": "P2",
+      "from_stage_group": "Progression",
+      "to_stage_group": "Progression",
+      "from_lane": "C",
+      "to_lane": "RHS",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "D1-LW",
+      "to_block": "D2-LHS",
+      "from_stage": "D1",
+      "to_stage": "D2",
+      "from_stage_group": "Build-Up",
+      "to_stage_group": "Build-Up",
+      "from_lane": "LW",
+      "to_lane": "LHS",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "P1-RHS",
+      "to_block": "F1-RW",
+      "from_stage": "P1",
+      "to_stage": "F1",
+      "from_stage_group": "Progression",
+      "to_stage_group": "Final Attack",
+      "from_lane": "RHS",
+      "to_lane": "RW",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    },
+    {
+      "from_block": "F1-RW",
+      "to_block": "F2-RW",
+      "from_stage": "F1",
+      "to_stage": "F2",
+      "from_stage_group": "Final Attack",
+      "to_stage_group": "Final Attack",
+      "from_lane": "RW",
+      "to_lane": "RW",
+      "total": 1,
+      "success": 1,
+      "fail": 0,
+      "success_rate": 1.0
+    }
+  ]
+}
