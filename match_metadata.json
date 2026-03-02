@@ -1,0 +1,50 @@
+{
+  "match": {
+    "match_id": 130,
+    "competition": "Friendly Match",
+    "stage": "Group Stage",
+    "date": "2026-02-13",
+    "recording": {
+      "fps": 25,
+      "resolution": {
+        "width": 1920,
+        "height": 1080
+      }
+    },
+    "teams": {
+      "home": {
+        "name": "Real Madrid",
+        "short_name": "real",
+        "kit_color": "white",
+        "starting_side_first_half": "left"
+      },
+      "away": {
+        "name": "Liverpool",
+        "short_name": "liv",
+        "kit_color": "red",
+        "starting_side_first_half": "right"
+      }
+    }
+  },
+  "pitch": {
+    "dimensions_m": {
+      "length": 105,
+      "width": 68
+    },
+    "coordinate_system": {
+      "origin": {
+        "x": 0,
+        "y": 0,
+        "description": "top-left corner of the pitch"
+      },
+      "x_axis": {
+        "direction": "left_to_right",
+        "unit": "meters"
+      },
+      "y_axis": {
+        "direction": "top_to_bottom",
+        "unit": "meters"
+      }
+    }
+  }
+}
