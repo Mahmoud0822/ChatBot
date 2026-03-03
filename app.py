@@ -13,7 +13,7 @@ app = Flask(__name__)
 DATA_PATH = os.path.join(os.path.dirname(__file__), 'team_shape_summary.json')
 MATCH_METADATA_PATH = os.path.join(os.path.dirname(__file__), 'match_metadata.json')
 TEAM_MAPPING_PATH = os.path.join(os.path.dirname(__file__), 'team_mapping.json')
-USE_LLM = True  # Change to True when API key is working
+USE_LLM = False  # Keep deterministic analytics answers by default
 bot = EnhancedTeamAnalyticsBot(
     DATA_PATH,
     use_llm=USE_LLM,
