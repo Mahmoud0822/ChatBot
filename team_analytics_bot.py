@@ -76,6 +76,10 @@ class TeamAnalyticsBot:
                 r'which.*more', r'who.*better', r'contrast', r'who.*more', r'who.*less',
                 r'which team', r'which one', r'who attacked', r'who had', r'more than'
             ],
+            'coach_summary': [
+                r'coach summary', r'coaching summary', r'coach mode', r'coaching mode',
+                r'coaching report', r'training focus', r'game plan', r'match plan'
+            ],
             'help': [
                 r'help', r'what can', r'what.*do', r'how.*use', r'example',
                 r'guide', r'assist', r'support'
@@ -90,7 +94,8 @@ class TeamAnalyticsBot:
                 r'dribble', r'dribbles', r'dribbling', r'dribble.*relation', r'dribble.*pattern',
                 r'dribble.*network', r'dribble.*flow', r'dribble.*statistics', r'dribble.*data',
                 r'dribble.*stats', r'dribble.*info', r'dribble.*analysis', r'dribble.*summary',
-                r'dribble.*performance', r'dribble.*metrics', r'dribble.*numbers', r'dribble.*figures'
+                r'dribble.*performance', r'dribble.*metrics', r'dribble.*numbers', r'dribble.*figures',
+                r'dripl', r'dripple', r'dribel', r'driblle'
             ]
         }
         
@@ -273,8 +278,8 @@ class TeamAnalyticsBot:
         
         return None
     
-    def _extract_mode(self, question: str) -> str:
-        """Extract mode (attack/defense) from question."""
+    def _extract_mode(self, question: str) -> Optional[str]:
+        """Extract mode (attack/defense) from question, or None if unspecified."""
         question_lower = question.lower()
         
         # Check for explicit attack/defense context words
@@ -297,12 +302,21 @@ class TeamAnalyticsBot:
         if re.search(r'\bdefen(?:se|ce|sive|ding)\b|without ball|out of possession', question_lower):
             return 'defense'
         
-        # Default to attack
-        return 'attack'
+        return None
     
     def _detect_intent(self, question: str) -> str:
         """Detect the intent of the question."""
         question_lower = question.lower()
+
+        # Explicit coach mode request should override generic "summary" matches.
+        if self._match_pattern(question_lower, self.question_patterns['coach_summary']):
+            return 'coach_summary'
+
+        # Prioritize high-signal intents that often include "how many".
+        if self._match_pattern(question_lower, self.question_patterns['passing']):
+            return 'passing'
+        if self._match_pattern(question_lower, self.question_patterns['dribbling']):
+            return 'dribbling'
         
         # Score each intent
         scores = {}
@@ -319,6 +333,72 @@ class TeamAnalyticsBot:
             return max(scores, key=scores.get)
         
         return 'unknown'
+
+    def _stage_rank(self, stage: str) -> int:
+        """Convert stage labels (D1/P2/F1) into comparable rank values."""
+        if not stage:
+            return 0
+        stage = str(stage).strip().upper()
+        match = re.match(r'^([DPF])(\d+)$', stage)
+        if not match:
+            return 0
+        group, sub = match.group(1), int(match.group(2))
+        base = {'D': 10, 'P': 20, 'F': 30}.get(group, 0)
+        return base + sub
+
+    def _sum_relation_totals(self, relation_data: Dict[str, Any]) -> Dict[str, int]:
+        """Aggregate total/success/fail counts from relation records."""
+        totals = {'total': 0, 'success': 0, 'fail': 0}
+        for rel in relation_data.get('relations', []):
+            totals['total'] += int(rel.get('total', 0))
+            totals['success'] += int(rel.get('success', 0))
+            totals['fail'] += int(rel.get('fail', 0))
+        return totals
+
+    def _progressive_relation_total(self, relation_data: Dict[str, Any]) -> int:
+        """Count actions that move to a higher stage rank."""
+        progressive_total = 0
+        for rel in relation_data.get('relations', []):
+            if self._stage_rank(rel.get('to_stage')) > self._stage_rank(rel.get('from_stage')):
+                progressive_total += int(rel.get('total', 0))
+        return progressive_total
+
+    def _extract_passing_direction(self, question: str) -> Optional[str]:
+        """Extract requested pass direction (forward/backward/lateral)."""
+        question_lower = question.lower()
+        if re.search(r'\bforward\b|\bprogressive\b|\bupfield\b', question_lower):
+            return 'forward'
+        if re.search(r'\bbackward\b|\bback\s+pass(?:es)?\b', question_lower):
+            return 'backward'
+        if re.search(r'\blateral\b|\bsideways\b|\bhorizontal\b', question_lower):
+            return 'lateral'
+        return None
+
+    def _get_pass_direction_counts(self, team: str) -> Optional[Dict[str, Dict[str, int]]]:
+        """Aggregate pass totals by direction using stage movement."""
+        team_key = self._resolve_team_key(team) or team
+        if team_key not in self.pass_relations:
+            return None
+
+        counts = {
+            'forward': {'total': 0, 'success': 0, 'fail': 0},
+            'backward': {'total': 0, 'success': 0, 'fail': 0},
+            'lateral': {'total': 0, 'success': 0, 'fail': 0},
+        }
+        for rel in self.pass_relations[team_key].get('relations', []):
+            from_rank = self._stage_rank(rel.get('from_stage'))
+            to_rank = self._stage_rank(rel.get('to_stage'))
+            if to_rank > from_rank:
+                direction = 'forward'
+            elif to_rank < from_rank:
+                direction = 'backward'
+            else:
+                direction = 'lateral'
+            counts[direction]['total'] += int(rel.get('total', 0))
+            counts[direction]['success'] += int(rel.get('success', 0))
+            counts[direction]['fail'] += int(rel.get('fail', 0))
+
+        return counts
     
     def get_team_status(self, team_name: str) -> Dict[str, Any]:
         """Get the status/counts for a specific team."""
@@ -435,7 +515,8 @@ class TeamAnalyticsBot:
         # Extract entities
         team = self._extract_team(question)
         phase = self._extract_phase(question)
-        mode = self._extract_mode(question)
+        explicit_mode = self._extract_mode(question)
+        mode = explicit_mode or 'attack'
         intent = self._detect_intent(question)
         
         # Store team in context for follow-up questions
@@ -461,6 +542,9 @@ class TeamAnalyticsBot:
                 return "Please specify which team you're asking about (Team A or Team W)."
         
         # Handle different intents
+        if intent == 'coach_summary':
+            return self._format_coach_summary(team)
+
         if intent == 'status':
             status = self.get_team_status(team)
             if status:
@@ -474,7 +558,10 @@ class TeamAnalyticsBot:
                     return self._format_formation(team, phase, formation, mode)
                 return f"No formation data found for {team} in {phase} phase ({mode} mode)."
             else:
-                # Return all formations
+                if explicit_mode is None:
+                    attack_formations = self.get_all_formations(team, 'attack')
+                    defense_formations = self.get_all_formations(team, 'defense')
+                    return self._format_formations_all_modes(team, attack_formations, defense_formations)
                 formations = self.get_all_formations(team, mode)
                 return self._format_formations(team, formations, mode)
         
@@ -550,6 +637,9 @@ class TeamAnalyticsBot:
                 return self._format_all_shapes(team, all_shapes, mode)
         
         elif intent == 'passing':
+            direction = self._extract_passing_direction(question)
+            if direction:
+                return self._format_pass_direction(team, direction)
             return self._format_passing_relations(team)
         
         elif intent == 'dribbling':
@@ -610,6 +700,26 @@ This represents the number of times the team entered each attacking phase during
                 phase_name = phase.replace('_', ' ').title()
                 lines.append(f"**{phase_name}:** {formation['formation']} (over {formation['frames_count']} frames)")
         
+        return '\n'.join(lines)
+
+    def _format_formations_all_modes(self, team: str, attack_formations: Dict, defense_formations: Dict) -> str:
+        """Format formations across phases for both attack and defense."""
+        team_name = self._display_team_name(team)
+        lines = [f"**{team_name} Formations (All Phases)**\n", "**Attack:**"]
+
+        for phase in ['build_up', 'progression', 'final_attack']:
+            formation = attack_formations.get(phase)
+            if formation:
+                phase_name = phase.replace('_', ' ').title()
+                lines.append(f"- {phase_name}: {formation['formation']} (over {formation['frames_count']} frames)")
+
+        lines.append("\n**Defense:**")
+        for phase in ['build_up', 'progression', 'final_attack']:
+            formation = defense_formations.get(phase)
+            if formation:
+                phase_name = phase.replace('_', ' ').title()
+                lines.append(f"- {phase_name}: {formation['formation']} (over {formation['frames_count']} frames)")
+
         return '\n'.join(lines)
     
     def _format_defensive_line(self, team: str, phase: str, line: Dict, mode: str) -> str:
@@ -840,9 +950,98 @@ The attacking line represents the average position of the forward players."""
         lines.append("- Comparisons between teams")
         
         return '\n'.join(lines)
+
+    def _format_coach_summary(self, team: str) -> str:
+        """Format a coach-focused summary with actionable points."""
+        team_key = self._resolve_team_key(team) or team
+        team_name = self._display_team_name(team_key)
+        status = self.get_team_status(team_key)
+        if not status:
+            return f"No team data found for {team_name}."
+
+        counts = status['counts']
+        total_phases = max(status['total'], 1)
+        progression_rate = counts['progression'] / total_phases * 100.0
+        final_attack_rate = counts['final_attack'] / total_phases * 100.0
+
+        attack_forms = self.get_all_formations(team_key, 'attack')
+        defense_forms = self.get_all_formations(team_key, 'defense')
+
+        pass_data = self.pass_relations.get(team_key, {})
+        pass_totals = self._sum_relation_totals(pass_data) if pass_data else {'total': 0, 'success': 0, 'fail': 0}
+        progressive_passes = self._progressive_relation_total(pass_data) if pass_data else 0
+        pass_success_rate = (pass_totals['success'] / pass_totals['total'] * 100.0) if pass_totals['total'] else 0.0
+        progressive_pass_rate = (progressive_passes / pass_totals['total'] * 100.0) if pass_totals['total'] else 0.0
+
+        dribble_data = self.dribble_relations.get(team_key, {})
+        dribble_totals = self._sum_relation_totals(dribble_data) if dribble_data else {'total': 0, 'success': 0, 'fail': 0}
+        progressive_dribbles = self._progressive_relation_total(dribble_data) if dribble_data else 0
+        dribble_success_rate = (dribble_totals['success'] / dribble_totals['total'] * 100.0) if dribble_totals['total'] else 0.0
+
+        attack_final_shape = self.get_shape_metrics(team_key, 'final_attack', 'attack') or {}
+        attack_prog_lines = self.get_line_positions(team_key, 'progression', 'attack') or {}
+        defense_prog_shape = self.get_shape_metrics(team_key, 'progression', 'defense') or {}
+
+        final_width = float(attack_final_shape.get('width_avg', 0) or 0)
+        final_depth = float(attack_final_shape.get('depth_avg', 0) or 0)
+        def_prog_width = float(defense_prog_shape.get('width_avg', 0) or 0)
+        gaps = attack_prog_lines.get('line_gaps', {}) if attack_prog_lines else {}
+        gap_def_mid = float(gaps.get('gap_def_mid_x_avg', 0) or 0)
+        gap_mid_att = float(gaps.get('gap_mid_att_x_avg', 0) or 0)
+
+        coaching_points = []
+        if final_attack_rate < 35:
+            coaching_points.append("Increase progression-to-final-third conversion with third-man runs and earlier support around the ball.")
+        else:
+            coaching_points.append("Final-third access rate is solid; focus on chance quality and final pass timing.")
+
+        if pass_totals['total'] and progressive_pass_rate < 45:
+            coaching_points.append("Raise progressive pass volume by creating better interior receiving angles in possession.")
+
+        if dribble_totals['total'] and dribble_success_rate < 55:
+            coaching_points.append("Improve 1v1 efficiency in wide channels with isolation patterns and immediate support.")
+
+        if final_width < 30:
+            coaching_points.append("Final-attack shape is narrow; keep weak-side width to stretch the back line.")
+
+        if gap_def_mid > 16 or gap_mid_att > 18:
+            coaching_points.append("Vertical spacing is stretched in progression; reduce line gaps for cleaner support distances.")
+
+        if def_prog_width > 32:
+            coaching_points.append("Defensive progression block is wide; improve central compactness without losing pressing access.")
+
+        if not coaching_points:
+            coaching_points.append("Current structure is balanced; prioritize transition speed and repeated execution under pressure.")
+
+        def form_name(forms: Dict[str, Dict], phase: str) -> str:
+            form = forms.get(phase, {})
+            return form.get('formation', 'N/A') if form else 'N/A'
+
+        return f"""**{team_name} Coach Summary Mode**
+
+**Phase Profile:**
+- Build Up: {counts['build_up']}
+- Progression: {counts['progression']} ({progression_rate:.1f}% of phases)
+- Final Attack: {counts['final_attack']} ({final_attack_rate:.1f}% of phases)
+
+**Formations (Reference):**
+- Attack: Build Up {form_name(attack_forms, 'build_up')} | Progression {form_name(attack_forms, 'progression')} | Final Attack {form_name(attack_forms, 'final_attack')}
+- Defense: Build Up {form_name(defense_forms, 'build_up')} | Progression {form_name(defense_forms, 'progression')} | Final Attack {form_name(defense_forms, 'final_attack')}
+
+**Ball Progression Indicators:**
+- Passes: {pass_totals['total']} total, {pass_success_rate:.1f}% success, {progressive_passes} progressive ({progressive_pass_rate:.1f}%)
+- Dribbles: {dribble_totals['total']} total, {dribble_success_rate:.1f}% success, {progressive_dribbles} progressive
+
+**Shape & Spacing Check:**
+- Final attack width/depth: {final_width:.1f}m / {final_depth:.1f}m
+- Progression line gaps: Def-Mid {gap_def_mid:.1f}m, Mid-Att {gap_mid_att:.1f}m
+- Defensive width in progression: {def_prog_width:.1f}m
+
+**Training Focus (Next Session):**
+{chr(10).join(f"- {point}" for point in coaching_points)}"""
     
-    def _format_comparison_status(self, status_a: Dict, status_b: Dict) -> str:
-        """Format status comparison between teams with effectiveness analysis."""
+    def _format_comparison_status_legacy(self, status_a: Dict, status_b: Dict) -> str:
+        """Legacy comparison formatter retained for reference; not used."""
         team_a_name = self._display_team_name(status_a['team'])
         team_b_name = self._display_team_name(status_b['team'])
         
@@ -1025,6 +1224,12 @@ I can understand various ways of asking! Here are examples:
 - "Who had more phases?"
 - "Show me the difference between teams"
 
+**Coach Summary Mode:**
+- "coach summary liverpool"
+- "coach mode for Team A"
+- "give me coaching report for Team W"
+- "training focus for liverpool"
+
 **Available:** Team A, Team W | Phases: build up, progression, final attack | Modes: attack (default) or defense
 
 **Tip:** You can ask follow-up questions without repeating the team name!"""
@@ -1076,6 +1281,26 @@ I can understand various ways of asking! Here are examples:
 - Key passing partnerships
 - Passing patterns by stage (Build-Up, Progression, Final Attack)
 - Zone-to-zone passing networks"""
+
+    def _format_pass_direction(self, team: str, direction: str) -> str:
+        """Format directional pass counts."""
+        counts = self._get_pass_direction_counts(team)
+        team_name = self._display_team_name(team)
+        if not counts:
+            return f"No passing data found for {team_name}."
+
+        dir_counts = counts.get(direction, {'total': 0, 'success': 0, 'fail': 0})
+        total_passes = sum(v['total'] for v in counts.values())
+        share = (dir_counts['total'] / total_passes * 100.0) if total_passes else 0.0
+
+        return f"""**{team_name} {direction.title()} Passes**
+
+- Total {direction} passes created: {dir_counts['total']}
+- Successful: {dir_counts['success']}
+- Failed: {dir_counts['fail']}
+- Share of all recorded passes: {share:.1f}%
+
+Directional counts are computed from stage transitions (higher stage = forward, lower = backward, equal = lateral)."""
 
     def _format_dribbling_relations(self, team: str) -> str:
         """Format dribbling relations data for display."""

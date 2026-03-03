@@ -83,6 +83,8 @@
             display: inline-block;
             text-align: left;
             line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
         
         .message.user .message-bubble {
@@ -305,6 +307,7 @@
             <div class="suggestion-chip" onclick="sendSuggestion('What formation does Team W use in progression?')">Team W Formation</div>
             <div class="suggestion-chip" onclick="sendSuggestion('Where was the back line when Team A was attacking?')">Back Line Position</div>
             <div class="suggestion-chip" onclick="sendSuggestion('Show me Team A formations')">All Formations</div>
+            <div class="suggestion-chip" onclick="sendSuggestion('coach summary liverpool')">Coach Summary</div>
         </div>
         
         <div class="chat-input-container">
@@ -323,7 +326,7 @@
             
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
-            bubble.innerHTML = text.replace(/\n/g, '<br>');
+            bubble.textContent = text;
             
             const time = document.createElement('div');
             time.className = 'message-time';

@@ -13,7 +13,7 @@ app = Flask(__name__)
 DATA_PATH = os.path.join(os.path.dirname(__file__), 'team_shape_summary.json')
 MATCH_METADATA_PATH = os.path.join(os.path.dirname(__file__), 'match_metadata.json')
 TEAM_MAPPING_PATH = os.path.join(os.path.dirname(__file__), 'team_mapping.json')
-USE_LLM = True  # Change to True when API key is working
+USE_LLM = False  # Keep deterministic outputs for analytics and coach mode
 bot = EnhancedTeamAnalyticsBot(
     DATA_PATH,
     use_llm=USE_LLM,
@@ -56,4 +56,5 @@ if __name__ == '__main__':
     print("\nOpen your browser and go to: http://localhost:5000")
     print("Press Ctrl+C to stop the server\n")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    debug_mode = os.getenv('FLASK_DEBUG', '0') == '1'
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)
