@@ -9,11 +9,11 @@ from enhanced_bot import EnhancedTeamAnalyticsBot
 
 app = Flask(__name__)
 
-# Initialize enhanced bot - set use_llm=False to disable LLM if API key issues
+# Initialize enhanced bot with default mode.
 DATA_PATH = os.path.join(os.path.dirname(__file__), 'team_shape_summary.json')
 MATCH_METADATA_PATH = os.path.join(os.path.dirname(__file__), 'match_metadata.json')
 TEAM_MAPPING_PATH = os.path.join(os.path.dirname(__file__), 'team_mapping.json')
-USE_LLM = False  # Keep deterministic outputs for analytics and coach mode
+USE_LLM = False  # Default mode for requests that don't explicitly set "mode"
 bot = EnhancedTeamAnalyticsBot(
     DATA_PATH,
     use_llm=USE_LLM,
@@ -32,12 +32,17 @@ def chat():
     try:
         data = request.get_json()
         message = data.get('message', '').strip()
+        mode = str(data.get('mode', 'rule')).strip().lower()
         
         if not message:
             return jsonify({'response': 'Please enter a message.'})
         
-        # Get response from bot
-        response = bot.answer_question(message)
+        use_llm = mode == 'llm'
+        response = bot.answer_question(message, use_llm=use_llm)
+
+        # If user requested LLM but it's unavailable, provide a clear note.
+        if use_llm and not bot.llm_available:
+            response = f"{response}\n\n[Note] LLM mode is not available on this server. Showing rule-based response."
         
         return jsonify({'response': response})
     
@@ -47,7 +52,12 @@ def chat():
 @app.route('/api/health')
 def health():
     """Health check endpoint."""
-    return jsonify({'status': 'healthy', 'data_loaded': bot.data is not None})
+    return jsonify({
+        'status': 'healthy',
+        'data_loaded': bot.data is not None,
+        'llm_available': bot.llm_available,
+        'default_mode': 'llm' if bot.use_llm else 'rule',
+    })
 
 if __name__ == '__main__':
     print("=" * 60)

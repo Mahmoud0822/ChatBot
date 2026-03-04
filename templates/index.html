@@ -118,6 +118,31 @@
             display: flex;
             gap: 10px;
         }
+
+        .mode-container {
+            padding: 10px 30px;
+            background: #ffffff;
+            border-top: 1px solid #eaeaea;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: #444;
+        }
+
+        .mode-select {
+            padding: 8px 12px;
+            border: 1px solid #d6d6d6;
+            border-radius: 8px;
+            background: #fff;
+            color: #333;
+        }
+
+        .mode-note {
+            font-size: 0.8rem;
+            color: #666;
+        }
         
         .chat-input {
             flex: 1;
@@ -263,6 +288,11 @@
             .chat-input-container {
                 padding: 15px;
             }
+
+            .mode-container {
+                padding: 10px 15px;
+                flex-wrap: wrap;
+            }
             
             .send-button {
                 padding: 12px 20px;
@@ -309,6 +339,15 @@
             <div class="suggestion-chip" onclick="sendSuggestion('Show me Team A formations')">All Formations</div>
             <div class="suggestion-chip" onclick="sendSuggestion('coach summary liverpool')">Coach Summary</div>
         </div>
+
+        <div class="mode-container">
+            <label for="modeSelect">Response mode:</label>
+            <select id="modeSelect" class="mode-select">
+                <option value="rule">Rule-based</option>
+                <option value="llm">LLM enhanced</option>
+            </select>
+            <span id="modeNote" class="mode-note"></span>
+        </div>
         
         <div class="chat-input-container">
             <input type="text" class="chat-input" id="userInput" placeholder="Ask about Team A or Team W..." onkeypress="handleKeyPress(event)">
@@ -319,6 +358,24 @@
     <script>
         const chatMessages = document.getElementById('chatMessages');
         const userInput = document.getElementById('userInput');
+        const modeSelect = document.getElementById('modeSelect');
+        const modeNote = document.getElementById('modeNote');
+
+        async function initModeOptions() {
+            try {
+                const response = await fetch('/api/health');
+                const health = await response.json();
+                if (!health.llm_available) {
+                    modeSelect.value = 'rule';
+                    modeSelect.disabled = true;
+                    modeNote.textContent = 'LLM unavailable (missing API key or OpenAI package).';
+                    return;
+                }
+                modeNote.textContent = 'Both modes available.';
+            } catch (error) {
+                modeNote.textContent = 'Could not verify LLM availability.';
+            }
+        }
         
         function addMessage(text, isUser) {
             const messageDiv = document.createElement('div');
@@ -379,7 +436,10 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({
+                        message: message,
+                        mode: modeSelect.value
+                    })
                 });
                 
                 const data = await response.json();
@@ -404,6 +464,7 @@
         
         // Focus input on load
         userInput.focus();
+        initModeOptions();
     </script>
 </body>
 </html>
