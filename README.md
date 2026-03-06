@@ -1,259 +1,194 @@
-# Team Analytics Chatbot MVP - Enhanced Version
+# Football RAG Intelligence
 
-An intelligent, natural language chatbot for analyzing football team data including formations, line positions, and match statistics. **Now handles ANY question you ask!**
+[Streamlit App](https://football-rag-intelligence-wcib5jk9shbywatdgaeeya.streamlit.app/) | [Hugging Face Spaces](https://huggingface.co/spaces)
 
-## 🌟 Key Features
+A self-hosted data platform that turns match event data into natural language. Browse Eredivisie 2025-26 teams and matches, and get AI-powered tactical reports grounded in real event data, built for analysts and scouts who need fast, reliable post-match insights without tab-switching.
 
-### 🧠 **Advanced Natural Language Understanding**
-- Understands various ways of asking the same question
-- Handles typos and informal language
-- Context-aware follow-up questions
-- No need to memorize specific phrases!
+## The Problem
+After a match, coaches, scouts, and analysts bounce between WhoScored, FotMob, and spreadsheets to reconstruct what happened. Generic LLMs often fabricate statistics instead of retrieving them:
 
-### 📊 **Comprehensive Data Analysis**
-- **Team Status**: Phase counts and performance overview
-- **Formations**: Tactical setups across all phases
-- **Line Positions**: Defensive, midfield, and attacking lines
-- **Shape Metrics**: Width, depth, spread, and stretch analysis
-- **Comparisons**: Team A vs Team W analysis
+- "PSV dominated possession" (actual: 45%)
+- "Heracles created few chances" (actual: 24 shots)
+- Tactical commentary with no grounding in real data
 
-### 💬 **Question Types Supported**
+This project fixes that. A production RAG pipeline retrieves real match metrics (xG, PPDA, progressive passes, field tilt, compactness) from a live data warehouse and feeds them to an LLM that writes from numbers, not around them. The result is scout-style reports in seconds, grounded in event data, with full traceability from query to source.
 
-**Status & Overview:**
-- "What is the status of Team A?"
-- "Tell me about Team W"
-- "How did team a perform?"
-- "Show me the statistics"
+## Status
+- Phase 1-4a complete
+- UI v1.5 deployed on Streamlit Cloud
 
-**Formations:**
-- "What formation does Team A use?"
-- "What's the tactical setup?"
-- "Show me all formations"
-- "How is Team W setup in build up?"
+### Completed Milestones
+1. Data pipeline: 412 matches, 279k events, dbt + MotherDuck + CI
+2. RAG engine: DuckDB VSS retrieval, Opik tracing, multi-path routing
+3. Evaluation locked: retrieval_accuracy=1.0, tactical_insight=0.91, answer_relevance=0.84
+4. Streamlit UI v1.5: Team -> Match -> Report workflow on Streamlit Cloud
+5. Hybrid pipeline automation: scrape -> dbt -> embed -> HF deploy via Dagster sensors
 
-**Line Positions:**
-- "Where was the back line?"
-- "Show me defensive line positions"
-- "Where were the midfielders?"
-- "What about the attacking line?"
+## Results
+| Metric | Value | Meaning |
+|---|---:|---|
+| Retrieval Accuracy | 1.0000 (10/10) | Every query returns the correct match (Recall@1) |
+| Tactical Insight | 0.9142 | Domain judge validates grounding + specificity + terminology |
+| Answer Relevance | 0.8380 | LLM output remains on-topic to user query |
+| Pipeline Coverage | 205/205 (100%) | All Eredivisie 2025-26 matches in schema |
+| Latency (local) | ~1.5s | Query embed + VSS + LLM response |
+| Data Freshness | Mon/Thu 7am UTC | GitHub Actions dbt run (CI integrated) |
+| Tests | 57 passing, 0 failing | End-to-end pipeline + RAG + observability |
 
-**Shape & Metrics:**
-- "What was Team W's shape in progression?"
-- "How wide was the team?"
-- "Show shape metrics"
+Baseline: 10 tactical analysis test cases evaluated via `opik.evaluate()`, all metrics locked in production.
 
-**Comparisons:**
-- "Compare both teams"
-- "Who attacked more?"
-- "Which team is better?"
-- "What's the difference?"
+## Architecture
 
-**Comprehensive:**
-- "Tell me everything about Team A in build up"
-- "Show me all data"
+```text
+DATA COLLECTION (local)
+WhoScored + FotMob -> Playwright/SSR extractors -> Dagster assets
 
-## 🚀 Quick Start
+STORAGE
+MinIO (raw JSON) -> DuckDB (bronze/silver) -> MotherDuck (cloud sync)
 
-### Prerequisites
+TRANSFORMATION
+dbt Core: bronze -> silver_events -> gold_match_summaries
+
+EMBEDDINGS
+gold summaries -> all-mpnet-base-v2 -> DuckDB VSS (HNSW)
+
+RAG ENGINE
+query router -> semantic retrieval or viz path -> LLM generation
+
+OBSERVABILITY
+Opik traces + EDD scorers (retrieval_accuracy, tactical_insight, answer_relevance)
+
+UI
+Streamlit Cloud, three-panel workflow: Team -> Match -> Report
+```
+
+## Tech Stack
+| Layer | Tool | Notes |
+|---|---|---|
+| Language | Python 3.12 via uv | |
+| Orchestration | Dagster | Assets, schedules, sensors |
+| Object Storage | MinIO | Bronze JSON |
+| Analytics DB | DuckDB + MotherDuck | Local + cloud SQL parity |
+| Transformation | dbt Core (dbt-duckdb) | Versioned + tested models |
+| Embeddings | sentence-transformers/all-mpnet-base-v2 | 768-dim semantic vectors |
+| Vector Search | DuckDB VSS (`array_distance`) | No external vector DB |
+| LLM (default) | Cerebras llama3.1-8b | ~1s inference, free tier |
+| Frontend | Streamlit Cloud | Auto deploy on push |
+| CI/CD | GitHub Actions | dbt production runs |
+| Observability | Opik | End-to-end tracing + EDD |
+
+## LLM Providers
+| Provider | Model | Notes |
+|---|---|---|
+| Cerebras (default) | llama3.1-8b | Free tier, no key required for app users |
+| Anthropic | claude-sonnet-4-6 | BYOK |
+| OpenAI | gpt-4o-mini | BYOK |
+| Google | gemini-1.5-flash | BYOK |
+
+## Data Coverage
+- League: Eredivisie 2025-26
+- Matches: 205 (100% coverage)
+- Events: 279,104 tactical events
+- Metrics: 24 tactical metrics per team per match
+- Embeddings: 205 summary vectors (HNSW indexed)
+- Sources: WhoScored + FotMob (cross-linked by match mapping)
+
+## Visualizations
+| Type | What it shows |
+|---|---|
+| Dashboard | Full 3x3 match report |
+| Passing Network | Player positions + connection strengths |
+| Defensive Heatmap | Defensive action density + compactness |
+| Progressive Passes | Forward pass zones and trajectories |
+| Shot Map | Team shots by type and xG |
+| xT Momentum | Match flow over time (expected threat) |
+
+## Project Structure
+```text
+football-rag-intelligence/
++-- orchestration/
++-- dbt_project/
++-- src/football_rag/
++-- data/
++-- scripts/
++-- tests/
++-- docs/assets/
++-- .streamlit/config.toml
++-- ARCHITECTURE.md
++-- SCRATCHPAD.md
++-- CLAUDE.md
+```
+
+## Quick Start
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/ricardoherediaj/football-rag-intelligence
+cd football-rag-intelligence
+uv sync
+
+# Run dbt transformations (local)
+cd dbt_project && uv run dbt run
+
+# Run dbt against MotherDuck (cloud)
+MOTHERDUCK_TOKEN=<token> uv run dbt run --target prod
+
+# Start Dagster UI
+uv run dagster dev
+
+# Verify vector search
+uv run python scripts/test_vector_search.py
+
+# Run tests
+uv run pytest
 ```
 
-### Run the Web Application
-```bash
-python app.py
-```
+## Pipeline Status
+| Layer | Status | Details |
+|---|---|---|
+| Data Collection | Live | WhoScored + FotMob scrapers, 412 raw matches |
+| Match Mapping | Live | 205/205 mapped |
+| dbt Silver | Live | 279,104 events, CI passing |
+| dbt Gold | Live | 205 summaries, 24 metrics/match |
+| Embeddings | Live | 205 vectors in DuckDB |
+| RAG Engine | Done | VSS retrieval + routing + tracing |
+| EDD Evaluation | Done | 3 scorers + locked baselines |
+| Streamlit UI | Done | v1.5 deployed |
+| Pipeline Automation | Done | Sensor chain scrape -> transform -> deploy |
+| Extended Inference | Planned | More OSS providers + CI evaluation |
 
-Then open: **http://localhost:5000**
+## Roadmap
+### Phase 1 - Data Pipeline (Complete)
+- Bronze/Silver/Gold medallion pipeline
+- 205 matches with 24 tactical metrics each
+- MotherDuck sync + CI/CD runs
 
-### Or use the Launcher (Windows)
-Double-click `start_bot.bat`
+### Phase 2 - RAG Engine (Complete)
+- DuckDB VSS retrieval
+- Intent router (semantic vs visualization)
+- `orchestrator.query()` as single entry point
+- Multi-provider LLM support
 
-## 💡 Usage Examples
+### Phase 3a - Observability (Complete)
+- `@opik.track` across orchestrator -> pipeline -> generation
+- EDD harness with 3 scorers and 21 tests
+- Locked production baselines
 
-### Example 1: Simple Status Query
-```
-You: What is the status of Team A?
-Bot: **Team A Status**
-     - Build Up: 15 phases
-     - Progression: 8 phases
-     - Final Attack: 6 phases
-     - Total: 29 phases
-```
+### Phase 3b - Streamlit UI + Deploy (Complete)
+- Three-panel drill-down UI
+- Cerebras default + BYOK providers
+- Deployed on Streamlit Cloud
 
-### Example 2: Formation Query
-```
-You: What formation does Team W use in progression?
-Bot: **Team W - Progression Phase**
-     Formation: 2-4-4
-     Frames Analyzed: 235
-     Average Outfield Players: 10.0
-```
+### Phase 4a - Hybrid Pipeline Automation (Complete)
+- Dagster sensor chain for full pipeline
+- HF dataset upload of `lakehouse.duckdb`
+- daemon auto-start and scheduled runs
 
-### Example 3: Natural Language Line Query
-```
-You: Where was the back line when Team A was attacking?
-Bot: **Team A Defensive Line Positions (Attack)**
-     Build Up: Position X = 18.1m, Width = 22.9m
-     Progression: Position X = 39.2m, Width = 20.4m
-     Final Attack: Position X = 60.7m, Width = 16.2m
-```
+### Phase 4b - Extended Inference (Planned)
+- Additional OSS model providers
+- EDD evaluation in CI
+- Prompt versioning tied to eval scores
 
-### Example 4: Comparison
-```
-You: Compare both teams
-Bot: **Team Comparison - Phase Counts**
-     | Phase | Team A | Team W |
-     |-------|--------|--------|
-     | Build Up | 15 | 10 |
-     | Progression | 8 | 21 |
-     | Final Attack | 6 | 21 |
-     | Total | 29 | 52 |
-     
-     Analysis: Team W had more attacking phases
-```
+## Engineering Log
+Build decisions and notes are documented in `docs/engineering_diary/`.
 
-### Example 5: Follow-up Question (Context-Aware)
-```
-You: What is the status of Team A?
-Bot: [Shows Team A status]
-
-You: What about their formations?
-Bot: [Shows Team A formations - no need to repeat "Team A"!]
-```
-
-## 🎯 Natural Language Features
-
-### Handles Variations
-✅ "Whats the setup for Team A?"  
-✅ "how did team a perform?"  
-✅ "Team W defensive line final attack"  
-✅ "where are the defenders"  
-✅ "who attacked more?"
-
-### Context Awareness
-✅ Follow-up questions without repeating team names  
-✅ Remembers previous context  
-✅ Smart defaults (shows all phases if not specified)
-
-### Typos & Informal Language
-✅ "team a" vs "Team A"  
-✅ "Whats" instead of "What's"  
-✅ "vs" instead of "versus"  
-✅ Missing punctuation
-
-## 📁 Project Structure
-
-```
-MVP/
-├── app.py                      # Flask web server
-├── team_analytics_bot.py       # Core bot logic (ENHANCED)
-├── templates/
-│   └── index.html             # Web interface
-├── requirements.txt            # Python dependencies
-├── start_bot.bat              # Windows launcher
-├── README.md                  # This file
-├── BOT_CAPABILITIES.md        # Detailed capabilities
-└── team_shape_summary.json    # Your data file
-```
-
-## 🔧 Technical Details
-
-### Intent Detection
-The bot uses pattern matching with regex to detect:
-- **10 different intents**: status, formation, defensive_line, midfield_line, attacking_line, all_lines, shape, comparison, help, unknown
-- **Scoring system**: Multiple patterns can match, highest score wins
-- **Flexible patterns**: Each intent has 5-10 different ways to express it
-
-### Entity Extraction
-Automatically extracts:
-- **Team**: Team A, Team W (with fuzzy matching)
-- **Phase**: build_up, progression, final_attack (with pattern variations)
-- **Mode**: attack (default) or defense
-
-### Context Management
-- Maintains conversation history
-- Remembers last mentioned team
-- Supports pronoun references ("they", "their", "them")
-
-### Smart Defaults
-- If no phase specified → shows all phases
-- If no team specified → uses context or asks user
-- If unclear intent → provides helpful summary
-
-## 📊 Data Structure
-
-The bot queries `team_shape_summary.json` which contains:
-- **stage_counts**: Phase entry counts for each team
-- **summary**: Detailed analytics including:
-  - Formations (e.g., "2-4-4", "3-4-3")
-  - Line positions (defensive, midfield, attacking)
-  - Shape metrics (width, depth, spread, stretch)
-  - Frame-by-frame player positions
-
-## 🎨 Web Interface Features
-
-- **Modern, responsive design**
-- **Typing indicator** while processing
-- **Suggestion chips** for quick queries
-- **Beautiful formatting** with markdown support
-- **Mobile-friendly** layout
-
-## 🛠️ Advanced Usage
-
-### Custom Questions
-You can ask questions in almost any way:
-- Formal: "What is the formation of Team A in the progression phase?"
-- Informal: "Whats Team A setup in progression?"
-- Short: "Team A formation progression"
-- Natural: "How did Team A setup their formation when progressing?"
-
-### Comparison Queries
-The bot can compare teams on:
-- Total phases
-- Individual phase counts
-- Formations
-- Line positions
-- Shape metrics
-
-### Comprehensive Views
-Ask for "everything" to get:
-- Formation
-- All line positions
-- Shape metrics
-- In a single response
-
-## 📝 Example Conversation
-
-```
-You: Tell me about Team W
-Bot: [Shows Team W summary with 52 total phases]
-
-You: What formation did they use?
-Bot: [Shows all Team W formations]
-
-You: Where was their back line in progression?
-Bot: [Shows defensive line position]
-
-You: Compare them to Team A
-Bot: [Shows detailed comparison]
-
-You: Who attacked more?
-Bot: Team W had more attacking phases (52 vs 29)
-```
-
-## 🤝 Contributing
-
-Feel free to enhance the bot by:
-- Adding more question patterns
-- Improving intent detection
-- Adding visualization features
-- Extending data analysis capabilities
-
-## 📄 License
-
-This MVP is built for demonstration purposes.
-
----
-
-**Ready to chat?** Run `python app.py` and start asking questions! 🚀
+## License
+MIT
