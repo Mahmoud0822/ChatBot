@@ -44,7 +44,7 @@ class TeamAnalyticsBot:
         self.question_patterns = {
             'status': [
                 r'status', r'how many', r'count', r'phases', r'overview', r'summary', 
-                r'information about', r'tell me about', r'what.*(?:have|did)', r'stats',
+                r'information about', r'tell me about', r'stats',
                 r'statistics', r'performance', r'results'
             ],
             'formation': [
@@ -317,6 +317,10 @@ class TeamAnalyticsBot:
             return 'passing'
         if self._match_pattern(question_lower, self.question_patterns['dribbling']):
             return 'dribbling'
+        # Formation questions can include generic terms like "what did ... use",
+        # so route them before broad status keywords such as "summary"/"performance".
+        if self._match_pattern(question_lower, self.question_patterns['formation']):
+            return 'formation'
         
         # Score each intent
         scores = {}
